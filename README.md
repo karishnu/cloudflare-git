@@ -133,7 +133,7 @@ try {
 ## Project Structure
 
 ```
-CloudflareGit/
+cloudflare-git/
 ├── src/index.ts       # Worker + Durable Object + FS shim
 ├── wrangler.toml      # Cloudflare Worker configuration
 ├── package.json

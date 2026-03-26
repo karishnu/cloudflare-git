@@ -8,7 +8,8 @@
   "keywords": ["cloudflare", "workers", "durable-objects", "git", "sqlite", "isomorphic-git"],
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "build": "npm install",
+    "deploy": "npm install && npx wrangler deploy",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
