@@ -1,0 +1,22 @@
+{
+  "name": "cloudflare-git",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Unified Git & File API on Cloudflare Workers + Durable Objects",
+  "license": "MIT",
+  "keywords": ["cloudflare", "workers", "durable-objects", "git", "sqlite", "isomorphic-git"],
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "isomorphic-git": "^1.27.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241230.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^3.99.0"
+  }
+}

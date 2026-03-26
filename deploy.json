@@ -1,0 +1,5 @@
+{
+  "name": "cloudflare-git",
+  "description": "Unified Git & File API on Cloudflare Workers + Durable Objects",
+  "type": "worker"
+}

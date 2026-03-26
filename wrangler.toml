@@ -1,0 +1,16 @@
+name = "cloudflare-git"
+main = "src/index.ts"
+compatibility_date = "2024-12-30"
+compatibility_flags = ["nodejs_compat"]
+
+# For local dev only. In production, use: npx wrangler secret put API_KEY
+[vars]
+API_KEY = "change-me-to-a-real-secret"
+
+[[durable_objects.bindings]]
+name = "GIT_REPO"
+class_name = "GitRepoDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["GitRepoDO"]
