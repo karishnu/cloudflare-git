@@ -5,7 +5,14 @@
   "type": "module",
   "description": "Unified Git & File API on Cloudflare Workers + Durable Objects",
   "license": "MIT",
-  "keywords": ["cloudflare", "workers", "durable-objects", "git", "sqlite", "isomorphic-git"],
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "durable-objects",
+    "git",
+    "sqlite",
+    "isomorphic-git"
+  ],
   "scripts": {
     "dev": "wrangler dev",
     "build": "npm install",
@@ -13,6 +20,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "hono": "^4.12.9",
     "isomorphic-git": "^1.27.1"
   },
   "devDependencies": {
