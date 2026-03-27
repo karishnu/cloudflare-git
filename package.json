@@ -17,15 +17,18 @@
     "dev": "wrangler dev",
     "build": "npm install",
     "deploy": "npm install && npx wrangler deploy",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "hono": "^4.12.9",
     "isomorphic-git": "^1.27.1"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.13.4",
     "@cloudflare/workers-types": "^4.20241230.0",
     "typescript": "^5.7.0",
+    "vitest": "^4.1.2",
     "wrangler": "^3.99.0"
   }
 }

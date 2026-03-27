@@ -1,5 +1,10 @@
 {
   "name": "cloudflare-git",
   "description": "Unified Git & File API on Cloudflare Workers + Durable Objects",
-  "type": "worker"
+  "type": "worker",
+  "secrets": {
+    "API_KEY": {
+      "description": "API key used for authentication (X-API-Key header and Git Basic auth password)"
+    }
+  }
 }
