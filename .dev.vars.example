@@ -1,2 +1,6 @@
-# Copy this file to .dev.vars and set your API key
+# Copy this file to .dev.vars and set your values
 API_KEY=your-secret-api-key-here
+
+# Required for create_space / list_spaces / delete_space MCP tools
+CF_API_TOKEN=your-cloudflare-api-token
+CF_ACCOUNT_ID=your-cloudflare-account-id

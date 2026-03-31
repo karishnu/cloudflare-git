@@ -1,9 +1,9 @@
 {
-  "name": "cloudflare-git",
+  "name": "agent-space",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Unified Git & File API on Cloudflare Workers + Durable Objects",
+  "description": "MCP-powered filesystem & git spaces on Cloudflare Workers + Durable Objects",
   "license": "MIT",
   "keywords": [
     "cloudflare",
@@ -21,8 +21,11 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.28.0",
+    "agents": "^0.8.7",
     "hono": "^4.12.9",
-    "isomorphic-git": "^1.27.1"
+    "isomorphic-git": "^1.27.1",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.13.4",

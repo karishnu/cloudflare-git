@@ -8,6 +8,8 @@ export default defineConfig({
       miniflare: {
         bindings: {
           API_KEY: "test-api-key",
+          CF_API_TOKEN: "test-cf-token",
+          CF_ACCOUNT_ID: "test-account-id",
         },
       },
     }),

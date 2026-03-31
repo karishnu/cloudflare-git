@@ -109,8 +109,8 @@ async function gitCommit(
 
   const message = body.message ?? "commit";
   const author = body.author ?? {
-    name: "CloudflareGit",
-    email: "cloudflare-git@workers.dev",
+    name: "AgentSpace",
+    email: "agent@agent-space.workers.dev",
   };
 
   // Stage all working_tree files via git.add

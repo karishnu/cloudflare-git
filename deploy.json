@@ -1,6 +1,6 @@
 {
-  "name": "cloudflare-git",
-  "description": "Unified Git & File API on Cloudflare Workers + Durable Objects",
+  "name": "agent-space",
+  "description": "MCP-powered filesystem & git spaces on Cloudflare Workers + Durable Objects",
   "type": "worker",
   "secrets": {
     "API_KEY": {
