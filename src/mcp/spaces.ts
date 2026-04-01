@@ -26,7 +26,7 @@ export async function deploySpace(
   // 1. Fetch our own Worker's script content (bundled modules)
   const selfName = "agent-space";
   const contentRes = await fetch(
-    `${CF_API}/accounts/${acct}/workers/scripts/${selfName}/content`,
+    `${CF_API}/accounts/${acct}/workers/scripts/${selfName}/content/v2`,
     { headers: headers(token) }
   );
   if (!contentRes.ok) {
@@ -34,15 +34,13 @@ export async function deploySpace(
     throw new Error(`Failed to fetch own script content: ${contentRes.status} ${err}`);
   }
 
-  // The content endpoint returns multipart/form-data with modules
-  const contentType = contentRes.headers.get("content-type") ?? "";
-  const scriptBody = await contentRes.arrayBuffer();
+  // The /content/v2 endpoint returns the compiled bundle; cf-entrypoint tells us the main module
+  const mainModule = contentRes.headers.get("cf-entrypoint") ?? "index.js";
+  const originalForm = await contentRes.formData();
 
-  // 2. Upload as a new Worker using the multipart form-data API
-  //    We need to construct the metadata + script parts
-  const boundary = `----AgentSpaceBoundary${Date.now()}`;
+  // 2. Build new FormData: our metadata + original module parts
   const metadata = {
-    main_module: "src/index.ts",
+    main_module: mainModule,
     compatibility_date: "2024-12-30",
     compatibility_flags: ["nodejs_compat"],
     bindings: [
@@ -73,42 +71,22 @@ export async function deploySpace(
     },
   };
 
-  // If the content response is already multipart, re-upload it with new metadata
-  // Otherwise, re-upload the single module
-  let uploadBody: BodyInit;
-  let uploadContentType: string;
-
-  if (contentType.includes("multipart")) {
-    // Re-upload as multipart: replace metadata, keep script parts
-    // Parse the original boundary and re-assemble
-    const form = new FormData();
+  const form = new FormData();
+  form.append(
+    "metadata",
+    new Blob([JSON.stringify(metadata)], { type: "application/json" })
+  );
+  // Copy all module parts from the original response, preserving ES module type
+  for (const [name, value] of originalForm.entries()) {
+    if (name === "metadata") continue;
+    const blob = typeof value === "string" ? new Blob([value]) : value;
     form.append(
-      "metadata",
-      new Blob([JSON.stringify(metadata)], { type: "application/json" })
+      name,
+      new Blob([blob], { type: "application/javascript+module" }),
+      name
     );
-    // Append the script content as the main module
-    form.append(
-      "src/index.ts",
-      new Blob([scriptBody], { type: "application/javascript+module" }),
-      "src/index.ts"
-    );
-    uploadBody = form;
-    uploadContentType = ""; // Let fetch set it from FormData
-  } else {
-    // Single module — build FormData
-    const form = new FormData();
-    form.append(
-      "metadata",
-      new Blob([JSON.stringify(metadata)], { type: "application/json" })
-    );
-    form.append(
-      "src/index.ts",
-      new Blob([scriptBody], { type: "application/javascript+module" }),
-      "src/index.ts"
-    );
-    uploadBody = form;
-    uploadContentType = "";
   }
+  const uploadBody: BodyInit = form;
 
   const uploadRes = await fetch(
     `${CF_API}/accounts/${acct}/workers/scripts/${scriptName}`,

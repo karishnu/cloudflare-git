@@ -2,5 +2,6 @@
 API_KEY=your-secret-api-key-here
 
 # Required for create_space / list_spaces / delete_space MCP tools
+# Needs: Workers Scripts Read + Edit, Account Settings Read
 CF_API_TOKEN=your-cloudflare-api-token
 CF_ACCOUNT_ID=your-cloudflare-account-id

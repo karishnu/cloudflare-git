@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { createMcpHandler } from "agents/mcp";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { Env } from "./helpers/types.js";
 import { jsonResponse } from "./helpers/git-pack.js";
 import { createServer } from "./mcp/server.js";
@@ -45,14 +45,55 @@ function checkBearerAuth(request: Request, apiKey: string): boolean {
 
 const app = new Hono<{ Bindings: Env }>();
 
+// ─── Request/Response logging middleware ────────────────────────────────────
+app.use("*", async (c, next) => {
+  const method = c.req.method;
+  const url = c.req.url;
+  const reqBody = method === "POST" || method === "PUT" || method === "PATCH"
+    ? await c.req.raw.clone().text()
+    : undefined;
+  console.log(`→ ${method} ${url}${reqBody ? `\n  body: ${reqBody}` : ""}`);
+
+  await next();
+
+  const status = c.res.status;
+  const resBody = await c.res.clone().text();
+  console.log(`← ${status} ${method} ${url}\n  body: ${resBody}`);
+});
+
+// Health / discovery endpoint — no auth required
+app.get("/api", (c) => {
+  return c.json({ name: "AgentSpace", version: "1.0.0", mcp: "/mcp" });
+});
+
 // MCP endpoint — handled before other auth middleware
 app.all("/mcp", async (c) => {
   if (!checkBearerAuth(c.req.raw, c.env.API_KEY)) {
     return new Response("Unauthorized", { status: 401 });
   }
+
+  // GET opens an SSE stream that hangs forever on serverless — reject it.
+  // MCP clients should use POST for all JSON-RPC calls.
+  if (c.req.method === "GET") {
+    return new Response("Method Not Allowed — use POST for MCP JSON-RPC\n", {
+      status: 405,
+      headers: { Allow: "POST, DELETE" },
+    });
+  }
+
   const server = createServer(c.env);
-  const handler = createMcpHandler(server, { route: "/mcp" });
-  return handler(c.req.raw, c.env, c.executionCtx);
+  const transport = new WebStandardStreamableHTTPServerTransport();
+  await server.connect(transport);
+  try {
+    return await transport.handleRequest(c.req.raw);
+  } catch (error) {
+    console.error("MCP handler error:", error);
+    return new Response(JSON.stringify({
+      jsonrpc: "2.0",
+      error: { code: -32603, message: error instanceof Error ? error.message : "Internal server error" },
+      id: null,
+    }), { status: 500, headers: { "Content-Type": "application/json" } });
+  }
 });
 
 // Auth middleware for non-MCP routes
