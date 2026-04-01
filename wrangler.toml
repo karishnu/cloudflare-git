@@ -3,10 +3,23 @@ main = "src/index.ts"
 compatibility_date = "2024-12-30"
 compatibility_flags = ["nodejs_compat"]
 
+minify = true
+
+[vars]
+SPACE_ROLE = "management"
+
 [[durable_objects.bindings]]
 name = "GIT_REPO"
 class_name = "GitRepoDO"
 
+[[worker_loaders]]
+binding = "LOADER"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["GitRepoDO"]
+
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true

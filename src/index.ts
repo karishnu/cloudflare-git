@@ -1,8 +1,10 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { Env } from "./helpers/types.js";
 import { jsonResponse } from "./helpers/git-pack.js";
 import { createServer } from "./mcp/server.js";
+
+type AppContext = Context<{ Bindings: Env }>;
 
 // Re-export the Durable Object class so wrangler can find it
 export { GitRepoDO } from "./do.js";
@@ -16,6 +18,10 @@ function isGitSmartHTTPRequest(url: URL): boolean {
 
 function isMcpRequest(url: URL): boolean {
   return url.pathname === "/mcp";
+}
+
+function isPublicReleaseRequest(url: URL): boolean {
+  return url.pathname === "/release" || url.pathname.startsWith("/release/");
 }
 
 function checkBasicAuth(request: Request, apiKey: string): boolean {
@@ -45,6 +51,51 @@ function checkBearerAuth(request: Request, apiKey: string): boolean {
 
 const app = new Hono<{ Bindings: Env }>();
 
+async function forwardReleaseRequest(c: AppContext, branch: string, forwardPath: string): Promise<Response> {
+  const env = c.env;
+
+  const doId = env.GIT_REPO.idFromName("repo");
+  const doStub = env.GIT_REPO.get(doId);
+  const deployRes = await doStub.fetch(
+    new Request(`https://internal/?cmd=get_deployment&branch=${encodeURIComponent(branch)}`)
+  );
+
+  if (!deployRes.ok) {
+    const err = await deployRes.json() as { error?: string };
+    return c.json({ error: err.error ?? `No deployment for branch "${branch}"` }, 404);
+  }
+
+  const deployment = await deployRes.json() as {
+    branch: string;
+    commit_hash: string;
+    main_module: string;
+    modules: Record<string, string | { js: string }>;
+  };
+
+  const loaderId = `${branch}:${deployment.commit_hash}`;
+  const worker = env.LOADER.get(loaderId, async () => {
+    return {
+      compatibilityDate: "2024-12-30",
+      mainModule: deployment.main_module,
+      modules: deployment.modules,
+      globalOutbound: null,
+    };
+  });
+
+  const originalUrl = new URL(c.req.url);
+  const forwardUrl = new URL(forwardPath, originalUrl.origin);
+  forwardUrl.search = originalUrl.search;
+
+  const forwardReq = new Request(forwardUrl.toString(), {
+    method: c.req.method,
+    headers: c.req.raw.headers,
+    body: c.req.raw.body,
+  });
+
+  const entrypoint = worker.getEntrypoint();
+  return entrypoint.fetch(forwardReq);
+}
+
 // ─── Request/Response logging middleware ────────────────────────────────────
 app.use("*", async (c, next) => {
   const method = c.req.method;
@@ -63,11 +114,20 @@ app.use("*", async (c, next) => {
 
 // Health / discovery endpoint — no auth required
 app.get("/api", (c) => {
-  return c.json({ name: "AgentSpace", version: "1.0.0", mcp: "/mcp" });
+  const role = c.env.SPACE_ROLE ?? "workspace";
+  const info: Record<string, unknown> = { name: "AgentSpace", version: "1.0.0", role };
+  if (role === "management") {
+    info.mcp = "/mcp";
+  }
+  return c.json(info);
 });
 
-// MCP endpoint — handled before other auth middleware
+// MCP endpoint — only available on management-role instances
 app.all("/mcp", async (c) => {
+  if (c.env.SPACE_ROLE !== "management") {
+    return new Response("Not Found", { status: 404 });
+  }
+
   if (!checkBearerAuth(c.req.raw, c.env.API_KEY)) {
     return new Response("Unauthorized", { status: 401 });
   }
@@ -105,6 +165,11 @@ app.use("*", async (c, next) => {
     return next();
   }
 
+  if (isPublicReleaseRequest(url)) {
+    // Public release routes — no auth required
+    return next();
+  }
+
   if (isGitSmartHTTPRequest(url)) {
     // Git Smart HTTP — use HTTP Basic auth
     if (!checkBasicAuth(c.req.raw, c.env.API_KEY)) {
@@ -127,7 +192,26 @@ app.use("*", async (c, next) => {
   await next();
 });
 
-// Forward everything to the singleton DO
+// ─── Public release routing: /release/* -> /deploy/release/* ────────────────
+app.all("/release/:branch/*", async (c) => {
+  const branch = c.req.param("branch");
+  const originalUrl = new URL(c.req.url);
+  const prefixLen = `/release/${branch}`.length;
+  return forwardReleaseRequest(c, branch, originalUrl.pathname.slice(prefixLen) || "/");
+});
+
+// Handle /release/:branch without trailing path
+app.all("/release/:branch", async (c) => {
+  const branch = c.req.param("branch");
+  return forwardReleaseRequest(c, branch, "/");
+});
+
+// Handle /release with no branch — defaults to "main"
+app.all("/release", async (c) => {
+  return forwardReleaseRequest(c, "main", "/");
+});
+
+// Forward everything else to the singleton DO
 app.all("*", async (c) => {
   const id = c.env.GIT_REPO.idFromName("repo");
   const stub = c.env.GIT_REPO.get(id);

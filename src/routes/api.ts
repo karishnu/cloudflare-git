@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { HandlerContext } from "../helpers/types.js";
 import { jsonResponse } from "../helpers/git-pack.js";
 import { handleGitCommand } from "../handlers/git-engine.js";
+import { handleDeployCommand } from "../handlers/deploy-engine.js";
 import { fsRead, fsWrite, fsDelete, handleList } from "../handlers/fs-engine.js";
 
 type ApiEnv = { Variables: { ctx: HandlerContext } };
@@ -16,6 +17,9 @@ apiRoutes.get("/", async (c) => {
   const list = c.req.query("list");
 
   if (cmd) {
+    if (cmd === "deploy" || cmd === "get_deployment" || cmd === "list_deployments" || cmd === "undeploy") {
+      return handleDeployCommand(ctx, cmd, c.req.raw);
+    }
     return handleGitCommand(ctx, cmd, c.req.raw);
   }
 
@@ -31,6 +35,9 @@ apiRoutes.post("/", async (c) => {
   const cmd = c.req.query("cmd");
 
   if (cmd) {
+    if (cmd === "deploy" || cmd === "get_deployment" || cmd === "list_deployments" || cmd === "undeploy") {
+      return handleDeployCommand(ctx, cmd, c.req.raw);
+    }
     return handleGitCommand(ctx, cmd, c.req.raw);
   }
 

@@ -55,14 +55,13 @@ export async function deploySpace(
         text: apiKey,
       },
       {
-        type: "secret_text",
-        name: "CF_API_TOKEN",
-        text: token,
+        type: "plain_text",
+        name: "SPACE_ROLE",
+        text: "workspace",
       },
       {
-        type: "plain_text",
-        name: "CF_ACCOUNT_ID",
-        text: acct,
+        type: "worker_loader",
+        name: "LOADER",
       },
     ],
     migrations: {
@@ -80,9 +79,10 @@ export async function deploySpace(
   for (const [name, value] of originalForm.entries()) {
     if (name === "metadata") continue;
     const blob = typeof value === "string" ? new Blob([value]) : value;
+    const contentType = blob.type || "application/javascript+module";
     form.append(
       name,
-      new Blob([blob], { type: "application/javascript+module" }),
+      new Blob([blob], { type: contentType }),
       name
     );
   }

@@ -8,9 +8,11 @@ export interface ErrnoError extends Error {
 
 export interface Env {
   GIT_REPO: DurableObjectNamespace;
+  LOADER: WorkerLoader;
   API_KEY: string;
   CF_API_TOKEN: string;
   CF_ACCOUNT_ID: string;
+  SPACE_ROLE?: string;
 }
 
 export interface HandlerContext {

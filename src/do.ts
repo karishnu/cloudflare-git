@@ -47,6 +47,15 @@ export class GitRepoDO extends DurableObject<Env> {
         mtime INTEGER NOT NULL
       )
     `);
+    this.sql.exec(`
+      CREATE TABLE IF NOT EXISTS deployments (
+        branch TEXT PRIMARY KEY,
+        commit_hash TEXT NOT NULL,
+        main_module TEXT NOT NULL,
+        modules TEXT NOT NULL,
+        deployed_at INTEGER NOT NULL
+      )
+    `);
 
     // Build internal Hono app with routes
     this.app = new Hono<{ Variables: { ctx: HandlerContext } }>();
